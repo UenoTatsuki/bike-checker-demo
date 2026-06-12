@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# バイクナンバー照合アプリ（デモ版）
 
-## Getting Started
+スマートフォンでバイクのナンバープレートを撮影すると、AIが番号を読み取り、登録された顧客データと照合して「どの顧客のバイクか」を表示するWebアプリです。
 
-First, run the development server:
+バイク販売・整備の現場で「車両は手元にあるが、どのお客様のものか即座に確認したい」という場面を想定して開発しました。ナンバープレートにカメラを向けるだけで顧客を特定できます。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+> **注意:** 本リポジトリは就職活動用のデモ版です。掲載されている顧客データはすべて架空のものであり、実在の個人情報は一切含まれていません。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## デモ
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+実際に動作するデモを公開しています。スマートフォンでアクセスすると、カメラ撮影から照合までの一連の流れを体験できます。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**デモURL:** https://bike-checker-demo.vercel.app/
 
-## Learn More
+**デモ用アカウント**
 
-To learn more about Next.js, take a look at the following resources:
+| 項目 | 値 |
+|------|-----|
+| メールアドレス | bike-demo@example.com |
+| パスワード | bikedemo2929 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**試し方**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. 上記URLにアクセスし、デモ用アカウントでログインします（ログイン画面にも情報を表示しています）。
+2. 「ナンバーを撮影する」から画像を選択、またはカメラで撮影します。
+3. 「ナンバーを照合する」を押すと、AIが番号を読み取り、顧客データと照合します。
 
-## Deploy on Vercel
+デモ用データには以下を登録しています。手元に実物がない場合は、紙に番号を書いて撮影しても試せます。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| ナンバー | 顧客名 |
+|---------|--------|
+| 1234 | 山田太郎 |
+| 5678 | 佐藤花子 |
+| 9999 | 鈴木一郎 |
+| 4321 | 田中美咲 |
+| 7777 | 高橋健太 |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+登録のない番号を読み取らせると「該当する顧客が見つかりませんでした」と表示されます。
+
+## 主な機能
+
+- **ナンバープレートの撮影** — スマートフォンのカメラで撮影、または画像ファイルを選択できます。
+- **AIによる番号認識** — 撮影画像から、ナンバープレートの一連指定番号（中央の数字）を読み取ります。
+- **顧客照合** — 読み取った番号をデータベースと照合し、該当する顧客を表示します。
+- **ログイン認証** — 登録されたユーザーのみが利用できます。未ログインのアクセスはログイン画面に誘導されます。
+
+## 技術構成
+
+| 領域 | 使用技術 |
+|------|---------|
+| フロントエンド | Next.js（App Router）/ React / TypeScript |
+| スタイリング | Tailwind CSS |
+| 認証・データベース | Supabase（Auth / PostgreSQL） |
+| 画像認識（AI） | Claude API（Anthropic） |
+| ホスティング | Vercel |
+
+フロントエンドからデータベースまでをNext.jsとSupabaseで一貫して構築し、画像認識にはClaudeの画像理解を利用しています。
+
+## 工夫した点
+
+### セキュリティ
+
+- **APIキーの管理** — Supabaseおよびクラウド上のAIサービスのキーは環境変数で管理し、ソースコードには一切含めていません。リポジトリにも公開していません。
+- **サーバーサイドでのAI呼び出し** — AIサービスの秘密鍵はブラウザに露出させず、サーバーサイドの処理（API Route）の中だけで使用しています。
+- **行単位のアクセス制御（RLS）** — データベースにRow Level Securityを設定し、ログイン済みユーザーのみが顧客データを参照できるよう制限しています。
+- **アクセス制御** — 未ログイン状態でトップページにアクセスした場合、自動的にログイン画面へ誘導します。
+
+### スマートフォン対応
+
+- 実機検証の結果、スマートフォンの高解像度な写真がそのままでは送信サイズの上限を超える問題を発見しました。撮影画像を送信前に自動でリサイズ・圧縮する処理を追加し、認識精度を保ちつつ安定して動作するよう改善しています。
+
+## 開発を通して
+
+Webアプリ開発の初挑戦として、認証・データベース・AIによる画像認識・クラウドへのデプロイまで、一通りの流れを実装しました。実際に手を動かして開発したのは今回が初めてだったので、API・データベース周りの実装に苦労しました。
+
+特に、ローカル環境では問題なく動作していた処理が、実機（スマートフォン）や本番環境で初めて不具合として表面化する場面があり、原因の切り分けと修正を通して「動くものを、実際に使える状態まで仕上げる」ことの難しさと面白さを学びました。
+
+## 今後の展望
+
+- **認識精度の向上** — 撮影時のガイド枠表示や、読み取り結果をその場で手直しできる確認ステップの追加。
+- **顧客データの一括登録** — CSVファイルからの取り込みに対応し、実運用での登録作業を効率化。
+- **照合履歴の記録** — いつ・どの車両を照合したかの履歴機能。
+
+## 作者
+
+GitHub: [@UenoTatsuki](https://github.com/UenoTatsuki)
